@@ -5,9 +5,12 @@ import { join } from 'node:path'
 // 1.Recuperar la carpeta a listarç
 const dir= process.argv[2] ?? '.'
 // 2. Formato simple de los tamaños
-const formatBytes=(size)=>{
-    if (size<1024) return `${size} B`
-    return `${(size/1024).toFixed(2)} KB`
+function formatSize(bytes) {
+  if (bytes === 0) return '0 B'
+  const k = 1024
+  const sizes = ['B', 'KB', 'MB', 'GB']
+  const i = Math.floor(Math.log(bytes) / Math.log(k))
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
 }
 // 3. Leer los nombres sin info
 const files=await readdir(dir)
@@ -19,7 +22,7 @@ const entries=await Promise.all(
         return {
             name,
             isDir:info.isDirectory(),
-            size:formatBytes(info.size)
+            size:formatSize(info.size)
 
         }
     })
