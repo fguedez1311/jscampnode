@@ -1,5 +1,7 @@
 import {createServer} from 'node:http'
-
+import { uptime } from 'node:process'
+import { json } from 'node:stream/consumers'
+import { randomUUID } from 'node:crypto'
 
 
 process.loadEnvFile()
@@ -13,18 +15,58 @@ function sendJson(res,statusCode,data){
     return res.end(JSON.stringify(data))
     
 }
-
-const sever=createServer((req,res)=>{
-    
-    if (req.url==='/users'){
-       
-       return sendJson(res,200,[
+const users=[
         {id:1,name:'Älice'},
         {id:2,name:'Bob'},
         
-       ])
+       ]
+const sever=createServer(async (req,res)=>{
+
+    const {method,url}=req
+    if (method==='GET'){
+        if (req.url==='/users'){
+       
+          return sendJson(res,200,users)
+
+        }
+        if (req.url === '/health'){
+         res.statusCode = 200
+         res.setHeader('Content-Type', 'application/json; charset=utf-8')
+
+        const healthInfo = {
+                            status: 'ok',
+                            uptime: Math.floor(process.uptime()), // Segundos redondeados
+                            timestamp: Date.now(),
+                         }
+
+        return res.end(JSON.stringify(healthInfo))
+       }
+
     }
-    sendJson(res,404,{error:'Not Found'})
+    if (method==='POST'){
+        if(url==='/users'){
+            //Hacer nuestra magia
+            const body=await json(req)
+            if (!body || !body.name){
+                return sendJson(res,400,'Name is required')
+            }
+            const newUser={
+                name:body.name,
+                id:randomUUID()
+            }
+            
+            users.push(newUser)
+            return  sendJson(res,200,{
+                message:"Usuario Creado"
+            })
+
+        }
+    }
+
+
+  
+       
+   return sendJson(res,404,{error:'Not Found'})
 
 })
 sever.listen(port,()=>{
